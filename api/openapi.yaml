@@ -1,0 +1,246 @@
+openapi: 3.0.3
+info:
+  title: Conga Configuration Service API
+  description: Centralized configuration management API for Conga Platform
+  version: 1.0.0
+  contact:
+    name: Platform Team
+    email: platform-team@conga.com
+  license:
+    name: Proprietary
+    url: https://conga.com/license
+
+servers:
+  - url: https://config-dev.conga.com/api/v1
+    description: Development server
+  - url: https://config-staging.conga.com/api/v1
+    description: Staging server
+  - url: https://config.conga.com/api/v1
+    description: Production server
+
+paths:
+  /config/{service}:
+    get:
+      summary: Get service configuration
+      description: Retrieve configuration settings for a specific service
+      operationId: getServiceConfig
+      tags:
+        - Configuration
+      parameters:
+        - name: service
+          in: path
+          required: true
+          schema:
+            type: string
+          example: auth-service
+        - name: environment
+          in: query
+          schema:
+            type: string
+            enum: [dev, staging, prod]
+          example: prod
+      responses:
+        '200':
+          description: Configuration retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  service:
+                    type: string
+                    example: auth-service
+                  environment:
+                    type: string
+                    example: prod
+                  config:
+                    type: object
+                    example:
+                      database:
+                        host: auth-db.prod.conga.com
+                        port: 5432
+                        name: auth_prod
+                      cache:
+                        host: auth-redis.prod.conga.com
+                        port: 6379
+                      features:
+                        mfa_enabled: true
+                        rate_limiting: true
+        '404':
+          description: Service configuration not found
+
+  /config/feature-flags:
+    get:
+      summary: Get feature flags
+      description: Retrieve all feature flags for the requesting service
+      operationId: getFeatureFlags
+      tags:
+        - Feature Flags
+      parameters:
+        - name: service
+          in: query
+          required: true
+          schema:
+            type: string
+          example: user-service
+        - name: environment
+          in: query
+          schema:
+            type: string
+            enum: [dev, staging, prod]
+          example: prod
+      responses:
+        '200':
+          description: Feature flags retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  service:
+                    type: string
+                  environment:
+                    type: string
+                  flags:
+                    type: object
+                    additionalProperties:
+                      type: boolean
+                    example:
+                      new_user_onboarding: true
+                      advanced_analytics: false
+                      beta_features: true
+
+  /config/feature-flags/{flag}:
+    put:
+      summary: Update feature flag
+      description: Update a specific feature flag value
+      operationId: updateFeatureFlag
+      tags:
+        - Feature Flags
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: flag
+          in: path
+          required: true
+          schema:
+            type: string
+          example: new_user_onboarding
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - service
+                - environment
+                - enabled
+              properties:
+                service:
+                  type: string
+                  example: user-service
+                environment:
+                  type: string
+                  enum: [dev, staging, prod]
+                  example: staging
+                enabled:
+                  type: boolean
+                  example: true
+      responses:
+        '200':
+          description: Feature flag updated successfully
+        '401':
+          description: Unauthorized
+        '403':
+          description: Insufficient permissions
+
+  /config/secrets/{key}:
+    get:
+      summary: Get secret value
+      description: Retrieve a secret value (encrypted)
+      operationId: getSecret
+      tags:
+        - Secrets
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: key
+          in: path
+          required: true
+          schema:
+            type: string
+          example: database_password
+        - name: service
+          in: query
+          required: true
+          schema:
+            type: string
+          example: auth-service
+      responses:
+        '200':
+          description: Secret retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  key:
+                    type: string
+                  value:
+                    type: string
+                    description: Encrypted secret value
+                  created_at:
+                    type: string
+                    format: date-time
+                  updated_at:
+                    type: string
+                    format: date-time
+        '401':
+          description: Unauthorized
+        '404':
+          description: Secret not found
+
+components:
+  schemas:
+    Configuration:
+      type: object
+      properties:
+        service:
+          type: string
+        environment:
+          type: string
+        config:
+          type: object
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    FeatureFlag:
+      type: object
+      properties:
+        name:
+          type: string
+        service:
+          type: string
+        environment:
+          type: string
+        enabled:
+          type: boolean
+        description:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

@@ -1,0 +1,38 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: config-service
+  title: Configuration Service
+  description: Centralized configuration management service for Conga Platform
+  annotations:
+    github.com/project-slug: testorg08/config-service
+    argocd/app-selector: app.kubernetes.io/name=config-service
+    backstage.io/techdocs-ref: dir:.
+    conga.io/site-group: SSG1
+    conga.io/sync-wave: "1"
+    conga.io/database-dependencies: config_database
+    conga.io/infrastructure-requirements: postgresql,s3
+  tags:
+    - configuration
+    - feature-flags
+    - settings
+    - foundation
+    - ssg1
+  links:
+    - url: https://config-dev.conga.com
+      title: Development Environment
+      icon: web
+    - url: https://config-staging.conga.com
+      title: Staging Environment
+      icon: web
+    - url: https://config.conga.com
+      title: Production Environment
+      icon: web
+spec:
+  type: service
+  lifecycle: production
+  owner: platform-team
+  system: conga-platform-core
+  providesApis:
+    - config-api
+  dependsOn: []
